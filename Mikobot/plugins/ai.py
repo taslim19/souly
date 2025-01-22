@@ -18,7 +18,6 @@ from Mikobot.state import state
 # <================================================ CONSTANTS =====================================================>
 API_URL = "https://lexica.qewertyy.dev/models"
 PALM_MODEL_ID = 0
-GPT_MODEL_ID = 5
 
 # <================================================ FUNCTIONS =====================================================>
 
@@ -58,27 +57,6 @@ async def palm_chatbot(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await result_msg.delete()
     await context.bot.send_message(chat_id=update.effective_chat.id, text=api_response)
 
-
-async def gpt_chatbot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    args = context.args
-    if not args:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Error: Missing input text after /askgpt command.",
-        )
-        return
-
-    input_text = " ".join(args)
-
-    result_msg = await context.bot.send_message(
-        chat_id=update.effective_chat.id, text="💬"
-    )
-
-    api_params = {"model_id": GPT_MODEL_ID, "prompt": input_text}
-    api_response = await get_api_response("GPT", api_params, API_URL)
-
-    await result_msg.delete()
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=api_response)
 
 
 # Define the upscale_image function
