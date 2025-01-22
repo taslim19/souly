@@ -1,8 +1,8 @@
 # <============================================== IMPORTS =========================================================>
 import asyncio
 import html
-import json
 import re
+import json
 from typing import Optional
 
 import requests
@@ -31,7 +31,6 @@ from Mikobot.plugins.log_channel import gloggable
 
 # <=======================================================================================================>
 
-
 # <================================================ FUNCTION =======================================================>
 @gloggable
 async def kukirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -49,7 +48,7 @@ async def kukirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         else:
             await update.effective_message.edit_text(
-                f"Chatbot disable by {mention_html(user.id, user.first_name)}.",
+                f"Chatbot disabled by {mention_html(user.id, user.first_name)}.",
                 parse_mode=ParseMode.HTML,
             )
 
@@ -72,7 +71,7 @@ async def kukiadd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         else:
             await update.effective_message.edit_text(
-                f"Hey Darling Chatbot enable by {mention_html(user.id, user.first_name)}.",
+                f"Hey Darling Chatbot enabled by {mention_html(user.id, user.first_name)}.",
                 parse_mode=ParseMode.HTML,
             )
 
@@ -95,6 +94,31 @@ async def kuki(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=keyboard,
         parse_mode=ParseMode.HTML,
     )
+
+
+async def fetch_chatgpt_response(prompt: str) -> str:
+    """Fetches response from OpenAI's ChatGPT API."""
+    openai_api_url = "https://api.openai.com/v1/chat/completions"
+    openai_api_key = "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"  # Replace with your OpenAI API key
+
+    headers = {
+        "Authorization": f"Bearer {openai_api_key}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "model": "gpt-3.5-turbo",  # Specify the model (e.g., gpt-3.5-turbo)
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.7,  # Adjust for creativity
+    }
+
+    async with requests.Session() as session:
+        async with session.post(openai_api_url, headers=headers, json=payload) as response:
+            if response.status_code == 200:
+                data = await response.json()
+                return data["choices"][0]["message"]["content"].strip()
+            else:
+                return "I'm having trouble connecting to ChatGPT right now."
 
 
 async def kuki_message(context: ContextTypes.DEFAULT_TYPE, message):
@@ -122,15 +146,14 @@ async def chatbot(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         Message = message.text
         await bot.send_chat_action(chat_id, action="typing")
-        kukiurl = requests.get(
-            f"http://api.brainshop.ai/get?bid=176809&key=lbMN8CXTGzhn1NKG&uid=[user]&msg={Message}"
-        )
 
-        Kuki = json.loads(kukiurl.text)
-        kuki = Kuki["cnt"]
+        try:
+            response_text = await fetch_chatgpt_response(Message)
+        except Exception as e:
+            response_text = "Sorry, I couldn't process that request."
 
         await asyncio.sleep(0.3)
-        await message.reply_text(kuki)
+        await message.reply_text(response_text)
 
 
 async def list_all_chats(update: Update, context: ContextTypes.DEFAULT_TYPE):
