@@ -89,12 +89,12 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if chat_obj.username.endswith("bot"):
                 head = f"⇨【 BOT INFORMATION 】⇦\n\n"
 
-        head += f"➲ ID: <code>{chat_obj.id}</code>"
+        head += f"➲ ID: {chat_obj.id}"
         head += f"\n➲ First Name: {chat_obj.first_name}"
         if chat_obj.last_name:
             head += f"\n➲ Last Name: {chat_obj.last_name}"
         if chat_obj.username:
-            head += f"\n➲ Username:</b> @{chat_obj.username}"
+            head += f"\n➲ Username: @{chat_obj.username}"
         head += f"\n➲ Permalink: {mention_html(chat_obj.id, 'link')}"
 
         if chat_obj.username and not chat_obj.username.endswith("bot"):
@@ -139,19 +139,19 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if chat_obj.type == ChatType.SENDER:
         head = f"📨 Sender Chat Information:\n"
         await reply_with_text("Found sender chat, getting information...")
-        head += f"<b>ID:</b> <code>{chat_obj.id}</code>"
+        head += f"ID: {chat_obj.id}"
         if chat_obj.title:
-            head += f"\n🏷️ <b>Title:</b> {chat_obj.title}"
+            head += f"\n🏷️ Title: {chat_obj.title}"
         if chat_obj.username:
-            head += f"\n📧 <b>Username:</b> @{chat_obj.username}"
+            head += f"\n📧 Username: @{chat_obj.username}"
         head += f"\n🔗 Permalink: {mention_html(chat_obj.id, 'link')}"
         if chat_obj.description:
-            head += f"\n📝 <b>Description:</b> {chat_obj.description}"
+            head += f"\n📝 Description: {chat_obj.description}"
 
     elif chat_obj.type == ChatType.CHANNEL:
         head = f"Channel Information:\n"
         await reply_with_text("Found channel, getting information...")
-        head += f"<b>ID:</b> <code>{chat_obj.id}</code>"
+        head += f"<b>ID:</b> {chat_obj.id}</code>"
         if chat_obj.title:
             head += f"\n<b>Title:</b> {chat_obj.title}"
         if chat_obj.username:
@@ -165,14 +165,14 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif chat_obj.type in [ChatType.GROUP, ChatType.SUPERGROUP]:
         head = f"Group Information:\n"
         await reply_with_text("Found group, getting information...")
-        head += f"<b>ID:</b> <code>{chat_obj.id}</code>"
+        head += f" ID: <code>{chat_obj.id}</code>"
         if chat_obj.title:
-            head += f"\n<b>Title:</b> {chat_obj.title}"
+            head += f"\n Title:</b> {chat_obj.title}"
         if chat_obj.username:
-            head += f"\n<b>Username:</b> @{chat_obj.username}"
+            head += f"\n Username: @{chat_obj.username}"
         head += f"\nPermalink: {mention_html(chat_obj.id, 'link')}"
         if chat_obj.description:
-            head += f"\n<b>Description:</b> {chat_obj.description}"
+            head += f"\n<b>Description:  {chat_obj.description}"
 
     if INFOPIC:
         try:
