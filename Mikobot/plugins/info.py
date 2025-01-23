@@ -117,13 +117,13 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         disaster_level_present = False
 
         if chat_obj.id == OWNER_ID:
-            head += "\n\n👑 The disaster level of this person is My Owner."
+            head += "\n\n👑 Tʜᴇ ᴅɪsᴀsᴛᴇʀ ʟᴇᴠᴇʟ ᴏғ ᴛʜɪs ᴘᴇʀsᴏɴ ɪs Mʏ Oᴡɴᴇʀ."
             disaster_level_present = True
         elif chat_obj.id in DEV_USERS:
-            head += "\n\n🐉 This user is a member of Infamous Hydra."
+            head += "\n\n🐉 Tʜɪs ᴜsᴇʀ ɪs ᴀ ᴍᴇᴍʙᴇʀ ᴏғ ʀᴇsᴏʟᴜᴛᴇ ᴅᴇғᴇɴᴅᴇʀ."
             disaster_level_present = True
         elif chat_obj.id in DRAGONS:
-            head += "\n\n🐲 The disaster level of this person is Dragon."
+            head += "\n\n🐲 Tʜᴇ ᴅɪsᴀsᴛᴇʀ ʟᴇᴠᴇʟ ᴏғ ᴛʜɪs ᴘᴇʀsᴏɴ ɪs Dʀᴀɢᴏɴ."
             disaster_level_present = True
         if disaster_level_present:
             head += " [?]"
