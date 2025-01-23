@@ -12,7 +12,6 @@ import telethon
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, Message
 
-from Infamous.karma import ALIVE_ANIMATION, ALIVE_BTN
 from Mikobot import BOT_NAME, app
 
 # <=======================================================================================================>
