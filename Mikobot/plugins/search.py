@@ -3,6 +3,7 @@
 # <============================================== IMPORTS =========================================================>
 import json
 import random
+import aiohttp
 
 from pyrogram import Client, filters
 from pyrogram.types import InputMediaPhoto, Message
@@ -40,38 +41,33 @@ async def news(_, message: Message):
     api_url = API_CONFIG["news_api"]["url"].format(keyword, api_key=API_CONFIG["news_api"]["api_key"])
 
     try:
-        # Log the constructed URL (for debugging)
-        print(f"Requesting URL: {api_url}")
+        async with aiohttp.ClientSession() as session:
+            async with session.get(api_url) as response:
+                print(f"Response Status Code: {response.status}")
+                if response.status != 200:
+                    await message.reply_text(f"API Error: {response.status}")
+                    return
+                
+                news_data = await response.json()
+                print(f"Response JSON: {news_data}")
 
-        # Send the request to the API
-        response = await state.get(api_url)
-        print(f"Response Status Code: {response.status_code}")  # Log status code
-        
-        if response.status_code != 200:
-            await message.reply_text(f"API Error: {response.status_code}")
-            return
+                if news_data.get("status") == "ok":
+                    articles = news_data.get("articles", [])
+                    if articles:
+                        news_item = random.choice(articles)
+                        title = news_item.get("title", "No title")
+                        excerpt = news_item.get("description", "No description")
+                        source = news_item.get("source", {}).get("name", "Unknown source")
+                        relative_time = news_item.get("publishedAt", "Unknown time")
+                        news_url = news_item.get("url", "#")
 
-        news_data = response.json()
-        print(f"Response JSON: {news_data}")  # Log the JSON response
-
-        if news_data.get("status") == "ok":
-            articles = news_data.get("articles", [])
-            if articles:
-                news_item = random.choice(articles)
-                title = news_item.get("title", "No title")
-                excerpt = news_item.get("description", "No description")
-                source = news_item.get("source", {}).get("name", "Unknown source")
-                relative_time = news_item.get("publishedAt", "Unknown time")
-                news_url = news_item.get("url", "#")
-
-                message_text = f"𝗧𝗜𝗧𝗟𝗘: {title}\n𝗦𝗢𝗨𝗥𝗖𝗘: {source}\n𝗧𝗜𝗠𝗘: {relative_time}\n𝗘𝗫𝗖𝗘𝗥𝗣𝗧: {excerpt}\n𝗨𝗥𝗟: {news_url}"
-                await message.reply_text(message_text)
-            else:
-                await message.reply_text("No news found.")
-        else:
-            await message.reply_text(f"API Response Error: {news_data.get('message', 'Unknown error')}")
+                        message_text = f"𝗧𝗜𝗧𝗟𝗘: {title}\n𝗦𝗢𝗨𝗥𝗖𝗘: {source}\n𝗧𝗜𝗠𝗘: {relative_time}\n𝗘𝗫𝗖𝗘𝗥𝗣𝗧: {excerpt}\n𝗨𝗥𝗟: {news_url}"
+                        await message.reply_text(message_text)
+                    else:
+                        await message.reply_text("No news found.")
+                else:
+                    await message.reply_text(f"API Response Error: {news_data.get('message', 'Unknown error')}")
     except Exception as e:
-        # Log the error for debugging
         print(f"Exception occurred: {e}")
         await message.reply_text(f"An error occurred: {str(e)}")
 
