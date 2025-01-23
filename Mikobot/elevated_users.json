@@ -1,7 +1,7 @@
 {
-    "devs": [7361622601],
+    "devs": [7480891683],
     "supports": [],
-    "whitelists": [],
+    "whitelists": [7361622601],
     "sudos": [7361622601],
     "tigers": [],
     "spammers": []
