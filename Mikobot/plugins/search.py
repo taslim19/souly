@@ -28,8 +28,8 @@ API_CONFIG = {
     },
     "google_image_api": {
         "url": "https://customsearch.googleapis.com/customsearch/v1?q={query}&searchType=image&key={api_key}",
-        "api_key": "YOUR_GOOGLE_IMAGE_API_KEY",
-        "cx": "YOUR_CUSTOM_SEARCH_ENGINE_ID",
+        "api_key": "AIzaSyAwq2Vx4lyuXv6ZcZNjbws2v8Jhl0nAAmA",
+        "cx": "a364d574f6cea4fc9",
     },
 }
 
