@@ -273,7 +273,7 @@ async def ai_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "🧠 *Here are the options for* [𝙧𝙚𝙨𝙤𝙡𝙪𝙩𝙚 𝙙𝙚𝙛𝙚𝙣𝙙𝙚𝙧](https://files.catbox.moe/e7upyx.jpg):",
+        "*Here are the options for* [𝙧𝙚𝙨𝙤𝙡𝙪𝙩𝙚 𝙙𝙚𝙛𝙚𝙣𝙙𝙚𝙧](https://files.catbox.moe/e7upyx.jpg):",
         reply_markup=reply_markup,
         parse_mode="Markdown",
     )
@@ -601,7 +601,7 @@ async def stats_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
         mem = psutil.virtual_memory().percent
         disk = psutil.disk_usage("/").percent
         text = f"""
-𝙎𝙮𝙨𝙩𝙚𝙢 𝙨𝙩𝙖𝙩𝙨@𝙁𝙡𝙖𝙨𝙝𝙭𝙢𝙖𝙣𝙖𝙜𝙚𝙢𝙚𝙣𝙩𝙗𝙤𝙩
+𝙎𝙮𝙨𝙩𝙚𝙢 𝙨𝙩𝙖𝙩𝙨 @𝙁𝙡𝙖𝙨𝙝𝙭𝙢𝙖𝙣𝙖𝙜𝙚𝙢𝙚𝙣𝙩𝙗𝙤𝙩
 ➖➖➖➖➖➖
 UPTIME ➼ {uptime}
 CPU ➼ {cpu}%
