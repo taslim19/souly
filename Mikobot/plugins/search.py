@@ -1,7 +1,4 @@
-# SOURCE https://github.com/Team-ProjectCodeX
-# CREATED BY https://t.me/O_okarma
-# API BY https://www.github.com/SOME-1HING
-# PROVIDED BY https://t.me/ProjectCodeX
+
 
 # <============================================== IMPORTS =========================================================>
 import json
@@ -13,43 +10,58 @@ from pyrogram.types import InputMediaPhoto, Message
 from Mikobot import app
 from Mikobot.state import state
 
-# <=======================================================================================================>
-
-BINGSEARCH_URL = "https://sugoi-api.vercel.app/search"
-NEWS_URL = "https://sugoi-api.vercel.app/news?keyword={}"
-
+# <======================================== CONFIGURATION =========================================================>
+# Centralized configuration for API settings
+API_CONFIG = {
+    "news_api": {
+        "url": "https://newsapi.org/v2/everything?q={}&apiKey={api_key}",
+        "api_key": "a66730fffb6b4d5c9a9db2a69ad1f9b5",
+    },
+    "bing_search_api": {
+        "url": "https://api.bing.microsoft.com/v7.0/search?q={query}",
+        "api_key": "YOUR_BING_SEARCH_API_KEY",
+    },
+    "bing_image_api": {
+        "url": "https://api.bing.microsoft.com/v7.0/images/search?q={query}",
+        "api_key": "YOUR_BING_IMAGE_API_KEY",
+    },
+    "google_image_api": {
+        "url": "https://customsearch.googleapis.com/customsearch/v1?q={query}&searchType=image&key={api_key}",
+        "api_key": "YOUR_GOOGLE_IMAGE_API_KEY",
+        "cx": "YOUR_CUSTOM_SEARCH_ENGINE_ID",
+    },
+}
 
 # <================================================ FUNCTION =======================================================>
+
 @app.on_message(filters.command("news"))
 async def news(_, message: Message):
     keyword = (
         message.text.split(" ", 1)[1].strip() if len(message.text.split()) > 1 else ""
     )
-    url = NEWS_URL.format(keyword)
+    api_url = API_CONFIG["news_api"]["url"].format(keyword, api_key=API_CONFIG["news_api"]["api_key"])
 
     try:
-        response = await state.get(url)  # Assuming state is an asynchronous function
+        response = await state.get(api_url)
         news_data = response.json()
 
-        if "error" in news_data:
-            error_message = news_data["error"]
-            await message.reply_text(f"Error: {error_message}")
-        else:
-            if len(news_data) > 0:
-                news_item = random.choice(news_data)
-
-                title = news_item["title"]
-                excerpt = news_item["excerpt"]
-                source = news_item["source"]
-                relative_time = news_item["relative_time"]
-                news_url = news_item["url"]
+        if news_data.get("status") == "ok":
+            articles = news_data.get("articles", [])
+            if articles:
+                news_item = random.choice(articles)
+                title = news_item.get("title", "No title")
+                excerpt = news_item.get("description", "No description")
+                source = news_item.get("source", {}).get("name", "Unknown source")
+                relative_time = news_item.get("publishedAt", "Unknown time")
+                news_url = news_item.get("url", "#")
 
                 message_text = f"𝗧𝗜𝗧𝗟𝗘: {title}\n𝗦𝗢𝗨𝗥𝗖𝗘: {source}\n𝗧𝗜𝗠𝗘: {relative_time}\n𝗘𝗫𝗖𝗘𝗥𝗣𝗧: {excerpt}\n𝗨𝗥𝗟: {news_url}"
                 await message.reply_text(message_text)
             else:
                 await message.reply_text("No news found.")
-
-    except Exception as e:  # Replace with specific exception type if possible
+        else:
+            await message.reply_text(f"Error: {news_data.get('message', 'Unknown error')}")
+    except Exception as e:
         await message.reply_text(f"Error: {str(e)}")
 
 
@@ -60,24 +72,21 @@ async def bing_search(client: Client, message: Message):
             await message.reply_text("Please provide a keyword to search.")
             return
 
-        keyword = " ".join(
-            message.command[1:]
-        )  # Assuming the keyword is passed as arguments
-        params = {"keyword": keyword}
+        keyword = " ".join(message.command[1:])
+        api_url = API_CONFIG["bing_search_api"]["url"].format(query=keyword)
+        headers = {"Ocp-Apim-Subscription-Key": API_CONFIG["bing_search_api"]["api_key"]}
 
-        response = await state.get(
-            BINGSEARCH_URL, params=params
-        )  # Use the state.get method
+        response = await state.get(api_url, headers=headers)
 
         if response.status_code == 200:
-            results = response.json()
+            results = response.json().get("webPages", {}).get("value", [])
             if not results:
                 await message.reply_text("No results found.")
             else:
                 message_text = ""
                 for result in results[:7]:
-                    title = result.get("title", "")
-                    link = result.get("link", "")
+                    title = result.get("name", "No title")
+                    link = result.get("url", "No URL")
                     message_text += f"{title}\n{link}\n\n"
                 await message.reply_text(message_text.strip())
         else:
@@ -86,79 +95,61 @@ async def bing_search(client: Client, message: Message):
         await message.reply_text(f"An error occurred: {str(e)}")
 
 
-# Command handler for the '/bingimg' command
 @app.on_message(filters.command("bingimg"))
 async def bingimg_search(client: Client, message: Message):
     try:
-        text = message.text.split(None, 1)[
-            1
-        ]  # Extract the query from command arguments
+        text = message.text.split(None, 1)[1]
     except IndexError:
-        return await message.reply_text(
-            "Provide me a query to search!"
-        )  # Return error if no query is provided
+        return await message.reply_text("Provide me a query to search!")
 
-    search_message = await message.reply_text("🔎")  # Display searching message
+    search_message = await message.reply_text("🔎")
 
-    # Send request to Bing image search API using state function
-    bingimg_url = "https://sugoi-api.vercel.app/bingimg?keyword=" + text
-    resp = await state.get(bingimg_url)
-    images = json.loads(resp.text)  # Parse the response JSON into a list of image URLs
+    api_url = API_CONFIG["bing_image_api"]["url"].format(query=text)
+    headers = {"Ocp-Apim-Subscription-Key": API_CONFIG["bing_image_api"]["api_key"]}
+    response = await state.get(api_url, headers=headers)
 
-    media = []
-    count = 0
-    for img in images:
-        if count == 7:
-            break
+    if response.status_code == 200:
+        images = response.json().get("value", [])
+        if not images:
+            await message.reply_text("No images found.")
+            return
 
-        # Create InputMediaPhoto object for each image URL
-        media.append(InputMediaPhoto(media=img))
-        count += 1
+        media = [InputMediaPhoto(media=img["contentUrl"]) for img in images[:7]]
+        await message.reply_media_group(media=media)
+    else:
+        await message.reply_text("An error occurred while searching for images.")
 
-    # Send the media group as a reply to the user
-    await message.reply_media_group(media=media)
-
-    # Delete the searching message and the original command message
     await search_message.delete()
     await message.delete()
 
 
-# Command handler for the '/googleimg' command
 @app.on_message(filters.command("googleimg"))
 async def googleimg_search(client: Client, message: Message):
     try:
-        text = message.text.split(None, 1)[
-            1
-        ]  # Extract the query from command arguments
+        text = message.text.split(None, 1)[1]
     except IndexError:
-        return await message.reply_text(
-            "Provide me a query to search!"
-        )  # Return error if no query is provided
+        return await message.reply_text("Provide me a query to search!")
 
-    search_message = await message.reply_text("💭")  # Display searching message
+    search_message = await message.reply_text("💭")
 
-    # Send request to Google image search API using state function
-    googleimg_url = "https://sugoi-api.vercel.app/googleimg?keyword=" + text
-    resp = await state.get(googleimg_url)
-    images = json.loads(resp.text)  # Parse the response JSON into a list of image URLs
+    api_url = API_CONFIG["google_image_api"]["url"].format(
+        query=text, api_key=API_CONFIG["google_image_api"]["api_key"]
+    )
+    response = await state.get(api_url)
 
-    media = []
-    count = 0
-    for img in images:
-        if count == 7:
-            break
+    if response.status_code == 200:
+        images = response.json().get("items", [])
+        if not images:
+            await message.reply_text("No images found.")
+            return
 
-        # Create InputMediaPhoto object for each image URL
-        media.append(InputMediaPhoto(media=img))
-        count += 1
+        media = [InputMediaPhoto(media=img["link"]) for img in images[:7]]
+        await message.reply_media_group(media=media)
+    else:
+        await message.reply_text("An error occurred while searching for images.")
 
-    # Send the media group as a reply to the user
-    await message.reply_media_group(media=media)
-
-    # Delete the searching message and the original command message
     await search_message.delete()
     await message.delete()
-
 
 # <=======================================================================================================>
 
@@ -171,15 +162,15 @@ __help__ = """
 
 ➠ *Available commands:*
 
-» /googleimg <search query>: It retrieves and displays images obtained through a Google image search.
+» /googleimg <search query>: Retrieve and display images from Google Image Search.
 
-» /bingimg <search query>: It retrieves and displays images obtained through a Bing image search.
+» /bingimg <search query>: Retrieve and display images from Bing Image Search.
 
-» /news <search query> : search news.
+» /news <search query>: Search for news articles.
 
-» /bingsearch <search query> : get search result with links.
+» /bingsearch <search query>: Perform a Bing web search and get results with links.
 
 ➠ *Example:*
-➠ `/bingsearch app`: return search results.
+➠ `/bingsearch app`: Returns search results.
 """
 # <================================================ END =======================================================>
