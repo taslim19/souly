@@ -36,14 +36,23 @@ API_CONFIG = {
 
 @app.on_message(filters.command("news"))
 async def news(_, message: Message):
-    keyword = (
-        message.text.split(" ", 1)[1].strip() if len(message.text.split()) > 1 else ""
-    )
+    keyword = message.text.split(" ", 1)[1].strip() if len(message.text.split()) > 1 else ""
     api_url = API_CONFIG["news_api"]["url"].format(keyword, api_key=API_CONFIG["news_api"]["api_key"])
 
     try:
+        # Log the constructed URL (for debugging)
+        print(f"Requesting URL: {api_url}")
+
+        # Send the request to the API
         response = await state.get(api_url)
+        print(f"Response Status Code: {response.status_code}")  # Log status code
+        
+        if response.status_code != 200:
+            await message.reply_text(f"API Error: {response.status_code}")
+            return
+
         news_data = response.json()
+        print(f"Response JSON: {news_data}")  # Log the JSON response
 
         if news_data.get("status") == "ok":
             articles = news_data.get("articles", [])
@@ -60,9 +69,12 @@ async def news(_, message: Message):
             else:
                 await message.reply_text("No news found.")
         else:
-            await message.reply_text(f"Error: {news_data.get('message', 'Unknown error')}")
+            await message.reply_text(f"API Response Error: {news_data.get('message', 'Unknown error')}")
     except Exception as e:
-        await message.reply_text(f"Error: {str(e)}")
+        # Log the error for debugging
+        print(f"Exception occurred: {e}")
+        await message.reply_text(f"An error occurred: {str(e)}")
+
 
 
 @app.on_message(filters.command("bingsearch"))
