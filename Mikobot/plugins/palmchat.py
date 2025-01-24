@@ -9,7 +9,7 @@ import google.generativeai as genai
 
 @app.on_message(filters.text)
 async def handle_message(client, message):
- if not (message.text.startswith("flash") or message.text.startswith("Flash")):         
+ if not (message.text.startswith("flash"):     
      return
 
     query = " ".join(message.text.split()[1:])
