@@ -10,8 +10,7 @@ import google.generativeai as genai
 PALM_API_URL = "https://lexica.qewertyy.dev/models" 
 MODEL_ID = 5 
 
-# Create a Pyrogram Client
-app = Client("my_bot") 
+
 
 @app.on_message(filters.text)
 async def handle_message(client, message):
