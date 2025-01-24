@@ -15,7 +15,7 @@ async def palm_chatbot(client, message):
     query = " ".join(message.text.split()[1:])
 
     if not query:
-        await message.reply("Please provide a query after Miko.")
+        await message.reply("Please provide a query after flash.")
         return
 
     # Send the "giving results" message first
