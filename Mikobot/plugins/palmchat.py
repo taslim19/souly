@@ -6,15 +6,10 @@ from Mikobot.state import state
 import os
 import google.generativeai as genai
 
-# Configuration
-PALM_API_URL = "https://lexica.qewertyy.dev/models" 
-MODEL_ID = 5 
-
-
 
 @app.on_message(filters.text)
 async def handle_message(client, message):
-    if not message.text.startswith("miko"):
+    if not message.text.startswith("flash","Flash"):
         return
 
     query = " ".join(message.text.split()[1:])
@@ -48,9 +43,9 @@ app.run()
 
 
 __help__ = """
-➦ *Write Miko with any sentence it will work as chatbot.*
+➦ *Write Flash with any sentence it will work as chatbot.*
 
-*Example*: Miko are you a bot?
+*Example*: Flash are you a bot?
 """
 
 __mod_name__ = "CHATBOT"
