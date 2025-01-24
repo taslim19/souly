@@ -19,7 +19,7 @@ async def palm_chatbot(client, message):
         return
 
     # Send the "giving results" message first
-    result_msg = await message.reply("🔍")
+    result_msg = await message.reply("🔥")
 
     try:
         # Use the Gemini API to generate a response
