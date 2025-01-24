@@ -9,13 +9,13 @@ import google.generativeai as genai
 
 @app.on_message(filters.text)
 async def handle_message(client, message):
-    if not message.text[:5].lower() == "flash":  # Handles both "flash" and "Flash"
+    if not message.text.startswith("flash"):
         return
 
     query = " ".join(message.text.split()[1:])
 
     if not query:
-        await message.reply("Please provide a query after Flash.")
+        await message.reply("Please provide a query after flash.")
         return
 
     # Send the "giving results" message first
@@ -45,7 +45,7 @@ app.run()
 __help__ = """
 ➦ *Write Flash with any sentence it will work as chatbot.*
 
-*Example*: Flash are you a bot?
+*Example*: Flash are you a pro?
 """
 
 __mod_name__ = "CHATBOT"
