@@ -9,10 +9,9 @@ import google.generativeai as genai
 
 @app.on_message(filters.text)
 async def handle_message(client, message):
-    if not message.text.startswith("flash"):
+   if message.text.startswith("flash"):  # Corrected condition
+        query = " ".join(message.text.split()[1:])
         return
-
-    query = " ".join(message.text.split()[1:])
 
     if not query:
         await message.reply("Please provide a query after Miko.")
