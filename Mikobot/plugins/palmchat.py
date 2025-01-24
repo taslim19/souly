@@ -9,33 +9,35 @@ import google.generativeai as genai
 
 @app.on_message(filters.text)
 async def handle_message(client, message):
-    if message.text.startswith("flash"):  # Corrected condition
-        query = " ".join(message.text.split()[1:])
+    if not message.text.startswith("Miko"):
+        return
 
-        if not query:
-            await message.reply("Please provide a query after Flash.")
-            return
+    query = " ".join(message.text.split()[1:])
 
-        # Send the "giving results" message first
-        result_msg = await message.reply("🔍")
+    if not query:
+        await message.reply("Please provide a query after Miko.")
+        return
 
-        try:
-            # Use the Gemini API to generate a response
-            await genai.configure(api_key="AIzaSyB4CnCcJKXSlKyYbNu-loj6LoKFkceedps")  # Added await
-            model = genai.GenerativeModel("gemini-1.5-pro")
-            response = model.generate_content(f"Generate a response to the following query: {query}")
+    # Send the "giving results" message first
+    result_msg = await message.reply("🔍")
 
-            # Extract only the reply text
-            reply_text = response.candidates[0].content.parts[0].text
+    try:
+        # Use the Gemini API to generate a response
+        genai.configure(api_key="AIzaSyB4CnCcJKXSlKyYbNu-loj6LoKFkceedps") 
+        model = genai.GenerativeModel("gemini-1.5-pro") 
+        response = model.generate_content(f"Generate a response to the following query: {query}") 
 
-        except Exception as e:
-            reply_text = f"Error: An error occurred while calling the Gemini API. {e}"
+        # Extract only the reply text 
+        reply_text = response.candidates[0].content.parts[0].text 
 
-        # Delete the "giving results" message
-        await result_msg.delete()
+    except Exception as e:
+        reply_text = f"Error: An error occurred while calling the Gemini API. {e}"
 
-        # Send the chatbot response to the user
-        await message.reply(reply_text)
+    # Delete the "giving results" message
+    await result_msg.delete()
+
+    # Send the chatbot response to the user
+    await message.reply(reply_text)
 
 app.run()
 
