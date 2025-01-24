@@ -23,7 +23,7 @@ async def handle_message(client, message):
 
     try:
         # Use the Gemini API to generate a response
-        genai.configure(api_key="YOUR_GEMINI_API_KEY") 
+        genai.configure(api_key="AIzaSyB4CnCcJKXSlKyYbNu-loj6LoKFkceedps") 
         model = genai.GenerativeModel("gemini-1.5-pro") 
         response = model.generate_content(f"Generate a response to the following query: {query}") 
 
