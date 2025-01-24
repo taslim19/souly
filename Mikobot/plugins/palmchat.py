@@ -14,7 +14,7 @@ MODEL_ID = 5
 
 @app.on_message(filters.text)
 async def handle_message(client, message):
-    if not message.text.startswith("Miko"):
+    if not message.text.startswith("miko"):
         return
 
     query = " ".join(message.text.split()[1:])
@@ -28,15 +28,15 @@ async def handle_message(client, message):
 
     try:
         # Use the Gemini API to generate a response
-        genai.configure(api_key="AIzaSyB4CnCcJKXSlKyYbNu-loj6LoKFkceedps") 
+        genai.configure(api_key="YOUR_GEMINI_API_KEY") 
         model = genai.GenerativeModel("gemini-1.5-pro") 
         response = model.generate_content(f"Generate a response to the following query: {query}") 
-         
-        # Extract only the reply text
-        reply_text = response.result.candidates[0].content.parts[0].text 
+
+        # Extract only the reply text 
+        reply_text = response.candidates[0].content.parts[0].text 
 
     except Exception as e:
-        reply_text = f"Error: An error occurred report it @dragbackup. {e}"
+        reply_text = f"Error: An error occurred while calling the Gemini API. {e}"
 
     # Delete the "giving results" message
     await result_msg.delete()
