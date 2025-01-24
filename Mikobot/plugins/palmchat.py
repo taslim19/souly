@@ -9,7 +9,7 @@ import google.generativeai as genai
 
 @app.on_message(filters.text)
 async def palm_chatbot(client, message):
-    if not message.text.startswith("Miko"):
+    if not message.text.startswith("flash"):
         return
 
     query = " ".join(message.text.split()[1:])
