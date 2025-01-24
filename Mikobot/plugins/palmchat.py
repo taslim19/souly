@@ -15,7 +15,7 @@ async def handle_message(client, message):
     query = " ".join(message.text.split()[1:])
 
     if not query:
-        await message.reply("Please provide a query after flash.")
+        await message.reply("Please provide a query after Miko.")
         return
 
     # Send the "giving results" message first
@@ -23,7 +23,7 @@ async def handle_message(client, message):
 
     try:
         # Use the Gemini API to generate a response
-        genai.configure(api_key="AIzaSyB4CnCcJKXSlKyYbNu-loj6LoKFkceedps") 
+        genai.configure(api_key="YOUR_GEMINI_API_KEY") 
         model = genai.GenerativeModel("gemini-1.5-pro") 
         response = model.generate_content(f"Generate a response to the following query: {query}") 
 
