@@ -5,7 +5,7 @@ from Mikobot.state import state
 
 # Configuration - The PALM API URL
 PALM_API_URL = "https://lexica.qewertyy.dev/models"
-MODEL_ID = 1  # Modify this if you have a specific model ID to use
+MODEL_ID = 5  # Modify this if you have a specific model ID to use
 
 
 # Function to call the PALM API and get the response
