@@ -38,7 +38,7 @@ async def cek_mataa(_, ctx: Message, strings):
         or first_name != ctx.from_user.first_name
         or lastname_before != ctx.from_user.last_name
     ):
-        msg += f"<b>➼ 𝗠𝗜𝗞𝗢 𝗠𝗔𝗧𝗔</b>\n\n🧑‍💼 User: {ctx.from_user.mention} [<code>{ctx.from_user.id}</code>]\n"
+        msg += f"<b>➼ 𝒇𝒍𝒂𝒔𝒉 </b>\n\n User: {ctx.from_user.mention} [<code>{ctx.from_user.id}</code>]\n"
     if usernamebefore != ctx.from_user.username:
         usernamebefore = f"@{usernamebefore}" if usernamebefore else strings("no_uname")
         usernameafter = (
@@ -110,13 +110,13 @@ async def set_mataa(_, ctx: Message, strings):
 
 # <=================================================== HELP ====================================================>
 __help__ = """
-🙅‍♂️ **Toji Mata**.
+ **𝒇𝒍𝒂𝒔𝒉**.
 
 » /imposter : Detects if some one change his/her name.
 
-» /imposter on : turns on toji mata.
+» /imposter on : turns on SangaMata.
 
-» /imposter off : turns off toji mata.
+» /imposter off : turns off SangaMata.
 """
 
 __mod_name__ = "IMPOSTER"
