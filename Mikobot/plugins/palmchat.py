@@ -31,15 +31,18 @@ async def handle_message(client, message):
         genai.configure(api_key="AIzaSyB4CnCcJKXSlKyYbNu-loj6LoKFkceedps") 
         model = genai.GenerativeModel("gemini-1.5-pro") 
         response = model.generate_content(f"Generate a response to the following query: {query}") 
+         
+        # Extract only the reply text
+        reply_text = response.result.candidates[0].content.parts[0].text 
 
     except Exception as e:
-        response = f"Error: An error occurred while calling the Gemini API. {e}"
+        reply_text = f"Error: An error occurred report it @dragbackup. {e}"
 
     # Delete the "giving results" message
     await result_msg.delete()
 
     # Send the chatbot response to the user
-    await message.reply(response)
+    await message.reply(reply_text)
 
 app.run()
 
