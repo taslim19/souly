@@ -601,7 +601,7 @@ async def stats_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
         mem = psutil.virtual_memory().percent
         disk = psutil.disk_usage("/").percent
         text = f"""
-𝙎𝙮𝙨𝙩𝙚𝙢 𝙨𝙩𝙖𝙩𝙨 @𝙁𝙡𝙖𝙨𝙝𝙭𝙢𝙖𝙣𝙖𝙜𝙚𝙢𝙚𝙣𝙩𝙗𝙤𝙩
+𝙎𝙮𝙨𝙩𝙚𝙢 𝙨𝙩𝙖𝙩𝙨
 ➖➖➖➖➖➖
 UPTIME ➼ {uptime}
 CPU ➼ {cpu}%
@@ -640,7 +640,7 @@ async def gitsource_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def repo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    source_link = "https://github.com/Infamous-Hydra/YaeMiko"
+    source_link = "https://www.youtube.com/"
     message_text = f"*Here is the link for the public source repo*:\n\n{source_link}"
 
     await context.bot.send_message(
@@ -742,7 +742,7 @@ async def get_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
         await update.effective_message.reply_text(
-            "» *Choose an option for getting* [𝗵𝗲𝗹𝗽](https://telegra.ph/file/cce9038f6a9b88eb409b5.jpg)",
+            "» *Choose an option for getting* [𝗵𝗲𝗹𝗽](https://files.catbox.moe/lmfwck.jpg)",
             reply_markup=InlineKeyboardMarkup(
                 [
                     [
