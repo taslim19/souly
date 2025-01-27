@@ -23,7 +23,7 @@ async def palm_chatbot(client, message):
 
     try:
         # Use the Gemini API to generate a response
-        genai.configure(api_key="AIzaSyB4CnCcJKXSlKyYbNu-loj6LoKFkceedps") 
+        genai.configure(api_key="AIzaSyBM0m9lnb1GlbnWcGWDe0otQ-aVnpIF974") 
         model = genai.GenerativeModel("gemini-1.5-pro") 
         response = model.generate_content(f"Generate a response to the following query: {query}") 
 
