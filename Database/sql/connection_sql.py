@@ -25,10 +25,12 @@ SOFTWARE.
 import threading
 import time
 from typing import Union
-
-from sqlalchemy import BigInteger, Boolean, Column, String, UnicodeText
-
+from sqlalchemy import BigInteger, Boolean, Column, String, UnicodeText, create_engine
 from Database.sql import BASE, SESSION
+
+# Set up the engine (add your actual database URL)
+DATABASE_URL = "postgres://drag:npg_n41sVdlfWJye@ep-floral-tree-a1mf99i8.ap-southeast-1.pg.koyeb.app/koyebdb"
+engine = create_engine(DATABASE_URL)
 
 
 class ChatAccessConnectionSettings(BASE):
@@ -74,9 +76,10 @@ class ConnectionHistory(BASE):
         return "<ᴄᴏɴɴᴇᴄᴛɪᴏɴ ᴜsᴇʀ {} ʜɪsᴛᴏʀʏ {}>".format(self.user_id, self.chat_id)
 
 
-ChatAccessConnectionSettings.__table__.create(checkfirst=True)
-Connection.__table__.create(checkfirst=True)
-ConnectionHistory.__table__.create(checkfirst=True)
+# Create tables with the correct engine bind
+ChatAccessConnectionSettings.__table__.create(bind=engine, checkfirst=True)
+Connection.__table__.create(bind=engine, checkfirst=True)
+ConnectionHistory.__table__.create(bind=engine, checkfirst=True)
 
 CHAT_ACCESS_LOCK = threading.RLock()
 CONNECTION_INSERTION_LOCK = threading.RLock()
