@@ -28,18 +28,24 @@ async def chatbot_menu_handler(client: Client, message: Message):
 
 @app.on_callback_query(filters.regex("^chatbot_(on|off):"))
 async def chatbot_toggle(client: Client, callback_query):
-    data = callback_query.data.split(":")
-    action = data[1]
-    chat_id = int(data[2])
+    try:
+        data = callback_query.data.split(":")
+        action = data[1]
+        chat_id = int(data[2])  # Convert to int here
 
-    if action == "on":
-        chatbot_enabled[chat_id] = True
-    elif action == "off":
-        chatbot_enabled[chat_id] = False
+        if action == "on":
+            chatbot_enabled[chat_id] = True
+        elif action == "off":
+            chatbot_enabled[chat_id] = False
 
-    await callback_query.edit_message_text(f"Chatbot is now {'enabled' if chatbot_enabled.get(chat_id) else 'disabled'}")
-    await callback_query.answer()
-
+        await callback_query.edit_message_text(f"Chatbot is now {'enabled' if chatbot_enabled.get(chat_id) else 'disabled'}")
+        await callback_query.answer()
+    except (IndexError, ValueError) as e:  # Handle potential errors
+        print(f"Error in callback data: {e}")
+        await callback_query.answer("An error occurred. Please try again.")  # More user-friendly message
+    except Exception as e:
+        print(f"Unexpected error in callback: {e}")
+        await callback_query.answer("An unexpected error occurred.")
 
 @app.on_message(filters.text & filters.group)  # For the "flash" command
 async def palm_chatbot(client: Client, message: Message):
