@@ -1,11 +1,11 @@
+import os
 from pyrogram import filters
-import google.generativeai as genai  # Using Gemini API
-
+import google.generativeai as genai
 from Mikobot import app
-from Mikobot.state import state
-
-import requests
 from pyrogram.enums import ChatAction
+
+# 1. Secure API Key Handling (Environment Variable)
+genai.configure(api_key=os.environ.get("AIzaSyBM0m9lnb1GlbnWcGWDe0otQ-aVnpIF974"))  # Set GEMINI_API_KEY in your environment
 
 @app.on_message(filters.text)
 async def palm_chatbot(client, message):
@@ -18,28 +18,48 @@ async def palm_chatbot(client, message):
         await message.reply("Please provide a query after flash.")
         return
 
-    # Send the "giving results" message first
     result_msg = await message.reply("🔥")
     await app.send_chat_action(message.chat.id, ChatAction.TYPING)
 
     try:
-        # Use Gemini Flash 2.0 (Assuming this works with Google Generative AI API or a similar method)
-        genai.configure(api_key="AIzaSyBM0m9lnb1GlbnWcGWDe0otQ-aVnpIF974")  # Make sure to use your valid API key
-        model = genai.GenerativeModel("gemini-2.0")  # Or the appropriate model for Gemini Flash 2.0
-        response = model.generate_content(f"Generate a response to the following query: {query}")
+        # 2. List Models (Crucial)
+        available_models = genai.list_models()
+        gemini_model = None
+        for model in available_models:
+            if "gemini" in model.name.lower() and model.supported_methods and "generateContent" in model.supported_methods: # Find a Gemini model
+                gemini_model = model
+                break
 
-        # Extract only the reply text 
-        reply_text = response.candidates[0].content.parts[0].text
+        if not gemini_model:
+            await message.reply("No suitable Gemini model found.")  # Handle the case where no models are found
+            await result_msg.delete()
+            return
+
+        # 3. Use the correct model name from the list
+        model = genai.GenerativeModel(gemini_model.name)
+
+        # 4. Make the API call
+        response = model.generate_content(
+            contents=[{"role": "user", "parts": [{"text": f"Generate a response to the following query: {query}"}]}]
+            )
+
+        reply_text = ""
+        if response.candidates:
+            for candidate in response.candidates:  # Handle multiple candidates (if applicable)
+                for part in candidate.content.parts:
+                    if hasattr(part, 'text'):  # Check if the part has a text attribute
+                        reply_text += part.text
 
         if reply_text:
-            await message.reply(reply_text)  # Send the response to the user
+            await message.reply(reply_text)
         else:
             await message.reply("Sorry, I couldn't find an answer. Please try again.")
 
-    except Exception as e:
-        await message.reply(f"Error: An error occurred while calling the Gemini Flash 2.0 API. {e}")
+    except genai.APIError as e:  # Catch specific Gemini API errors
+        await message.reply(f"Gemini API Error: {e}")
+    except Exception as e:  # Catch other exceptions
+        await message.reply(f"An unexpected error occurred: {e}")
 
-    # Delete the "giving results" message
     await result_msg.delete()
 
 
