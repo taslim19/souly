@@ -17,7 +17,6 @@ chatbot_enabled = {}
 async def chatbot_handler(client: Client, message: Message):
     chat_id = message.chat.id
 
-    # Debug: Print incoming messages
     print(f"Received message from {chat_id}: {message.text}")
 
     if message.text.startswith("/chatbot"):
@@ -28,8 +27,8 @@ async def chatbot_handler(client: Client, message: Message):
         status = chatbot_enabled.get(chat_id, False)
         keyboard = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("Turn On", callback_data=f"chatbot_on:{chat_id}"),
-                InlineKeyboardButton("Turn Off", callback_data=f"chatbot_off:{chat_id}"),
+                InlineKeyboardButton("Turn On", callback_data=f"chatbot_on:{str(chat_id)}"),
+                InlineKeyboardButton("Turn Off", callback_data=f"chatbot_off:{str(chat_id)}"),
             ]
         ])
         await message.reply("Chatbot Control:", reply_markup=keyboard)
@@ -57,12 +56,12 @@ async def chatbot_handler(client: Client, message: Message):
 async def chatbot_toggle(client: Client, callback_query):
     try:
         data = callback_query.data.split(":")
-        if len(data) < 2:
+        if len(data) < 3:
             await callback_query.answer("Invalid data format.", show_alert=True)
             return
 
         action = data[1]
-        chat_id = int(data[2])  # Ensure chat_id is a valid integer
+        chat_id = int(data[2])  # Ensure this is a valid chat ID
 
         chatbot_enabled[chat_id] = (action == "on")
 
