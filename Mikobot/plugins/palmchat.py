@@ -7,24 +7,29 @@ import google.generativeai as genai
 # Store chatbot status per group (replace with a database in production)
 chatbot_enabled = {}
 
-# Environment variable for API key
+# Environment variable for API key (highly recommended)
 genai.configure(api_key=os.environ.get("AIzaSyBM0m9lnb1GlbnWcGWDe0otQ-aVnpIF974"))
 model = genai.GenerativeModel("gemini-1.5-pro")
 
 @app.on_message(filters.text & filters.group)  # Listen for ALL text in groups
 async def chatbot_menu_handler(client: Client, message: Message):
     if message.text.startswith("/chatbot"):  # Check if the message STARTS with /chatbot
-        if message.from_user and message.from_user.id in await client.get_chat_administrators(message.chat.id):
-            status = chatbot_enabled.get(message.chat.id, False)
-            keyboard = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton("Turn On", callback_data=f"chatbot_on:{message.chat.id}"),
-                    InlineKeyboardButton("Turn Off", callback_data=f"chatbot_off:{message.chat.id}"),
-                ]
-            ])
-            await message.reply("Chatbot Control:", reply_markup=keyboard)
-        else:
-            await message.reply("You must be an admin to use this command.")
+        try:
+            member = await client.get_chat_member(message.chat.id, message.from_user.id)
+            if member.status in ("creator", "administrator"):  # Check for creator or admin status
+                status = chatbot_enabled.get(message.chat.id, False)
+                keyboard = InlineKeyboardMarkup([
+                    [
+                        InlineKeyboardButton("Turn On", callback_data=f"chatbot_on:{message.chat.id}"),
+                        InlineKeyboardButton("Turn Off", callback_data=f"chatbot_off:{message.chat.id}"),
+                    ]
+                ])
+                await message.reply("Chatbot Control:", reply_markup=keyboard)
+            else:
+                await message.reply("You must be an admin to use this command.")
+        except Exception as e:  # Handle potential errors (e.g., user not in the chat)
+            print(f"Error checking admin status: {e}")
+            await message.reply("An error occurred while checking your status.")
         return  # Stop further processing of this message
 
 
@@ -34,16 +39,22 @@ async def chatbot_toggle(client: Client, callback_query):
     action = data[1]
     chat_id = int(data[2])  # Important: Convert chat_id to integer
 
-    if callback_query.from_user.id in await client.get_chat_administrators(chat_id):
-        if action == "on":
-            chatbot_enabled[chat_id] = True
-        elif action == "off":
-            chatbot_enabled[chat_id] = False
+    try:
+        member = await client.get_chat_member(chat_id, callback_query.from_user.id) #check admin for callback
+        if member.status in ("creator", "administrator"):
+            if action == "on":
+                chatbot_enabled[chat_id] = True
+            elif action == "off":
+                chatbot_enabled[chat_id] = False
 
-        await callback_query.edit_message_text(f"Chatbot is now {'enabled' if chatbot_enabled.get(chat_id) else 'disabled'}")
-        await callback_query.answer()  # Acknowledge the button press
-    else:
-        await callback_query.answer("You are not an admin.")
+            await callback_query.edit_message_text(f"Chatbot is now {'enabled' if chatbot_enabled.get(chat_id) else 'disabled'}")
+            await callback_query.answer()  # Acknowledge the button press
+        else:
+            await callback_query.answer("You are not an admin.")
+    except Exception as e:
+        print(f"Error checking admin status for callback: {e}")
+        await callback_query.answer("An error occurred.")
+
 
 
 @app.on_message(filters.text & filters.group)  # For the "flash" command
