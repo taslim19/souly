@@ -1,6 +1,6 @@
-from os import remove
+import os
+import requests
 from pyrogram import filters
-from sightengine import Client  # Import Sightengine Client
 
 from Database.mongodb.toggle_mongo import is_nsfw_on, nsfw_off, nsfw_on
 from Mikobot import BOT_USERNAME, DRAGONS, app
@@ -8,8 +8,17 @@ from Mikobot.state import arq
 from Mikobot.utils.can_restrict import can_restrict
 from Mikobot.utils.errors import capture_err
 
-# Initialize Sightengine Client with your API credentials
-sightengine_client = Client("1406815393", "Ni2VcsEKGXwaxbLBvtks3psaAnvPaanG")  # Replace with your actual API key and secret
+# Function to check NSFW content using Sightengine API
+def check_nsfw(image_path):
+    url = "https://api.sightengine.com/1.0/nsfw.json"
+    params = {
+        'api_user': '1406815393',  # Replace with your API User
+        'api_secret': 'Ni2VcsEKGXwaxbLBvtks3psaAnvPaanG',  # Replace with your API Secret
+    }
+    with open(image_path, 'rb') as image_file:
+        files = {'image': image_file}
+        response = requests.post(url, data=params, files=files)
+        return response.json()
 
 # <================================================ FUNCTION =======================================================>
 async def get_file_id_from_message(message):
@@ -66,29 +75,22 @@ async def detect_nsfw(_, message):
     if not file_id:
         return
     file = await _.download_media(file_id)
-
-    # Upload the image to Sightengine for NSFW analysis
+    
+    # Check NSFW using the alternative method
     try:
-        # Upload the file to Sightengine
-        upload_response = sightengine_client.upload(file)
-        image_url = upload_response.get('url')
-        
-        # Now, check the NSFW content of the uploaded image
-        image_analysis = sightengine_client.check('nsfw', image_url)
+        nsfw_result = check_nsfw(file)
     except Exception as e:
         return await message.reply_text(f"An error occurred: {str(e)}")
     
-    if not image_analysis or 'ok' not in image_analysis:
-        return
-
-    nsfw = image_analysis.get('nsfw', 0)
+    # Extract the NSFW score
+    nsfw_score = nsfw_result.get('nsfw', 0)
     
     # If the user is a "dragon", don't delete the message
     if message.from_user.id in DRAGONS:
         return
     
     # If NSFW content detected, delete the message and reply with the details
-    if nsfw > 0.5:  # Threshold for NSFW content detection (adjustable)
+    if nsfw_score > 0.5:  # Threshold for NSFW content detection (adjustable)
         try:
             await message.delete()
         except Exception:
@@ -98,7 +100,7 @@ async def detect_nsfw(_, message):
 **🔞 NSFW Image Detected & Deleted Successfully!**
 
 **✪ User:** {message.from_user.mention} [`{message.from_user.id}`]
-**✪ NSFW Score:** `{nsfw * 100}%`
+**✪ NSFW Score:** `{nsfw_score * 100}%`
 """
         )
 
@@ -129,25 +131,19 @@ async def nsfw_scan_command(_, message):
         return await m.edit("Something wrong happened.")
     file = await _.download_media(file_id)
 
-    # Upload the image to Sightengine for NSFW analysis
+    # Check NSFW using the alternative method
     try:
-        upload_response = sightengine_client.upload(file)
-        image_url = upload_response.get('url')
-        
-        # Now, check the NSFW content of the uploaded image
-        image_analysis = sightengine_client.check('nsfw', image_url)
+        nsfw_result = check_nsfw(file)
     except Exception as e:
         return await m.edit(f"An error occurred: {str(e)}")
     
-    if not image_analysis or 'ok' not in image_analysis:
-        return await m.edit("Failed to scan the file.")
-    
-    nsfw = image_analysis.get('nsfw', 0)
+    # Extract the NSFW score
+    nsfw_score = nsfw_result.get('nsfw', 0)
     
     await m.edit(
         f"""
-**➢ NSFW Score:** `{nsfw * 100}%`
-**➢ NSFW Detected:** `{('Yes' if nsfw > 0.5 else 'No')}`
+**➢ NSFW Score:** `{nsfw_score * 100}%`
+**➢ NSFW Detected:** `{('Yes' if nsfw_score > 0.5 else 'No')}`
 """
     )
 
