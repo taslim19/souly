@@ -3,19 +3,22 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from Mikobot import app
 import google.generativeai as genai
 
-# Configure Gemini API Key directly
+# Configure Gemini API Key
 GENAI_API_KEY = "AIzaSyBM0m9lnb1GlbnWcGWDe0otQ-aVnpIF974"
 genai.configure(api_key=GENAI_API_KEY)
 
 # Use the latest Gemini 1.5-Flash model
 model = genai.GenerativeModel("gemini-1.5-flash")
 
-# Store chatbot status per group (Consider using a database in production)
+# Store chatbot status per group
 chatbot_enabled = {}
 
 @app.on_message(filters.text & filters.group)
 async def chatbot_handler(client: Client, message: Message):
     chat_id = message.chat.id
+
+    # Debug: Print incoming messages
+    print(f"Received message from {chat_id}: {message.text}")
 
     if message.text.startswith("/chatbot"):
         if not message.from_user:
@@ -59,14 +62,11 @@ async def chatbot_toggle(client: Client, callback_query):
             return
 
         action = data[1]
-        chat_id = int(data[2])  # Ensure it's a valid integer
+        chat_id = int(data[2])  # Ensure chat_id is a valid integer
 
-        if action == "on":
-            chatbot_enabled[chat_id] = True
-        elif action == "off":
-            chatbot_enabled[chat_id] = False
+        chatbot_enabled[chat_id] = (action == "on")
 
-        await callback_query.edit_message_text(f"Chatbot is now {'enabled' if chatbot_enabled.get(chat_id) else 'disabled'}.")
+        await callback_query.edit_message_text(f"Chatbot is now {'enabled' if chatbot_enabled[chat_id] else 'disabled'}.")
         await callback_query.answer()
 
     except (IndexError, ValueError) as e:
@@ -75,6 +75,11 @@ async def chatbot_toggle(client: Client, callback_query):
     except Exception as e:
         print(f"Unexpected error in callback: {e}")
         await callback_query.answer("An unexpected error occurred.", show_alert=True)
+
+# Debugging function to check if the bot is receiving messages
+@app.on_message(filters.group)
+async def test_messages(client, message):
+    print(f"Received message in group {message.chat.id}: {message.text}")
 
 __help__ = """
 ➦ *Use /chatbot to control the chatbot in the group.*
