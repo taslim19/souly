@@ -1,5 +1,6 @@
-import os
-import requests
+# <============================================== IMPORTS =========================================================>
+from os import remove
+
 from pyrogram import filters
 
 from Database.mongodb.toggle_mongo import is_nsfw_on, nsfw_off, nsfw_on
@@ -8,16 +9,8 @@ from Mikobot.state import arq
 from Mikobot.utils.can_restrict import can_restrict
 from Mikobot.utils.errors import capture_err
 
-# Function to check NSFW content using DeepAI API
-def check_nsfw(image_path):
-    url = "https://api.deepai.org/api/nsfw-detector"
-    headers = {
-        'api-key': 'd98394f4-12cd-41f0-a8f6-36a6f335fe46',  # Replace with your DeepAI API Key
-    }
-    with open(image_path, 'rb') as image_file:
-        files = {'image': image_file}  # Use the 'image' key for uploading media
-        response = requests.post(url, headers=headers, files=files)
-        return response.json()
+# <=======================================================================================================>
+
 
 # <================================================ FUNCTION =======================================================>
 async def get_file_id_from_message(message):
@@ -74,34 +67,35 @@ async def detect_nsfw(_, message):
     if not file_id:
         return
     file = await _.download_media(file_id)
-    
-    # Check NSFW using DeepAI API
     try:
-        nsfw_result = check_nsfw(file)
-    except Exception as e:
-        return await message.reply_text(f"An error occurred: {str(e)}")
-    
-    # Extract the NSFW score
-    nsfw_score = nsfw_result.get('output', {}).get('nsfw_score', 0)
-    
-    # If the user is a "dragon", don't delete the message
+        results = await arq.nsfw_scan(file=file)
+    except Exception:
+        return
+    if not results.ok:
+        return
+    results = results.result
+    remove(file)
+    nsfw = results.is_nsfw
     if message.from_user.id in DRAGONS:
         return
-    
-    # If NSFW content detected, delete the message and reply with the details
-    if nsfw_score > 0.5:  # Threshold for NSFW content detection (adjustable)
-        try:
-            await message.delete()
-        except Exception:
-            return
-        await message.reply_text(
-            f"""
+    if not nsfw:
+        return
+    try:
+        await message.delete()
+    except Exception:
+        return
+    await message.reply_text(
+        f"""
 **🔞 NSFW Image Detected & Deleted Successfully!**
 
 **✪ User:** {message.from_user.mention} [`{message.from_user.id}`]
-**✪ NSFW Score:** `{nsfw_score * 100}%`
+**✪ Safe:** `{results.neutral} %`
+**✪ Porn:** `{results.porn} %`
+**✪ Adult:** `{results.sexy} %`
+**✪ Hentai:** `{results.hentai} %`
+**✪ Drawings:** `{results.drawings} %`
 """
-        )
+    )
 
 
 @app.on_message(filters.command(["nsfwscan", f"nsfwscan@{BOT_USERNAME}"]))
@@ -129,20 +123,22 @@ async def nsfw_scan_command(_, message):
     if not file_id:
         return await m.edit("Something wrong happened.")
     file = await _.download_media(file_id)
-
-    # Check NSFW using DeepAI API
     try:
-        nsfw_result = check_nsfw(file)
-    except Exception as e:
-        return await m.edit(f"An error occurred: {str(e)}")
-    
-    # Extract the NSFW score
-    nsfw_score = nsfw_result.get('output', {}).get('nsfw_score', 0)
-    
+        results = await arq.nsfw_scan(file=file)
+    except Exception:
+        return
+    remove(file)
+    if not results.ok:
+        return await m.edit(results.result)
+    results = results.result
     await m.edit(
         f"""
-**➢ NSFW Score:** `{nsfw_score * 100}%`
-**➢ NSFW Detected:** `{('Yes' if nsfw_score > 0.5 else 'No')}`
+**➢ Neutral:** `{results.neutral} %`
+**➢ Porn:** `{results.porn} %`
+**➢ Hentai:** `{results.hentai} %`
+**➢ Sexy:** `{results.sexy} %`
+**➢ Drawings:** `{results.drawings} %`
+**➢ NSFW:** `{results.is_nsfw}`
 """
     )
 
