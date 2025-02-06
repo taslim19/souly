@@ -1,124 +1,70 @@
 from pyrogram import filters
-from MukeshAPI import api  # Import MukeshAPI
-
 from Mikobot import app
-from Mikobot.state import state
-
-import requests
-from pyrogram.enums import ChatAction, ChatMemberStatus
+import google.generativeai as genai
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.enums import ChatMemberStatus
 
-# Track chatbot state (enabled/disabled)
-chatbot_enabled = False
+# Store chatbot state per chat
+chatbot_states = {}
 
-# Function to create the inline buttons
-def get_inline_buttons():
+def get_inline_buttons(chat_id):
+    state = chatbot_states.get(chat_id, False)
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("Enable Chatbot", callback_data="enable_chatbot")],
-        [InlineKeyboardButton("Disable Chatbot", callback_data="disable_chatbot")]
+        [InlineKeyboardButton(
+            "Disable Chatbot" if state else "Enable Chatbot", 
+            callback_data=f"toggle_chatbot_{chat_id}")]
     ])
 
 @app.on_message(filters.command("chatbot"))
 async def chatbot(client, message):
-    # Check if the command is used in a group
     if message.chat.type == "private":
         await message.reply("This command can only be used in groups.")
         return
 
-    # Check if the user is an admin in the group
     chat_member = await client.get_chat_member(message.chat.id, message.from_user.id)
     if chat_member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
         await message.reply("Sorry, only group admins can use this command.")
         return
 
-    # Send the inline button to enable the chatbot
-    await message.reply("Click a button to enable or disable the chatbot:", reply_markup=get_inline_buttons())
+    await message.reply("Click the button to enable or disable the chatbot:", reply_markup=get_inline_buttons(message.chat.id))
 
-@app.on_callback_query(filters.regex("enable_chatbot"))
-async def enable_chatbot(client, callback_query):
-    global chatbot_enabled
-    chatbot_enabled = True
-    await callback_query.message.edit("Chatbot is now enabled! You can start using it.", reply_markup=get_inline_buttons())
+@app.on_callback_query(filters.regex("toggle_chatbot_"))
+async def toggle_chatbot(client, callback_query):
+    chat_id = int(callback_query.data.split("_")[-1])
+    chatbot_states[chat_id] = not chatbot_states.get(chat_id, False)
+    state_text = "enabled" if chatbot_states[chat_id] else "disabled"
+    await callback_query.message.edit(f"Chatbot is now {state_text}!", reply_markup=get_inline_buttons(chat_id))
     await callback_query.answer()
-
-@app.on_callback_query(filters.regex("disable_chatbot"))
-async def disable_chatbot(client, callback_query):
-    global chatbot_enabled
-    chatbot_enabled = False
-    await callback_query.message.edit("Chatbot is now disabled. You cannot use it until enabled.", reply_markup=get_inline_buttons())
-    await callback_query.answer()
-
-sent_message = None  # Declare a global variable to store the sent message for tracking
 
 @app.on_message(filters.text)
 async def palm_chatbot(client, message):
-    global sent_message  # Use the global sent_message variable
-    global chatbot_enabled  # Use the global chatbot_enabled variable
-
-    # Check if the chatbot is enabled
-    if not chatbot_enabled:
-        return  # Chatbot is disabled, so no response
-
+    if not chatbot_states.get(message.chat.id, False):
+        return
+    
     if not message.text.startswith("flash"):
         return
 
     query = " ".join(message.text.split()[1:])
-
     if not query:
-        await message.reply("Please provide a query after flash.")
+        await message.reply("Please provide a query after 'flash'.")
         return
 
-    # Send the "giving results" message first
     result_msg = await message.reply("🔥")
-    await app.send_chat_action(message.chat.id, ChatAction.TYPING)
 
     try:
-        # Use MukeshAPI's gemini method to generate a response
-        response = api.gemini(query)
-        await app.send_chat_action(message.chat.id, ChatAction.TYPING)
-
-        # Extract the response text from MukeshAPI
-        reply_text = response["results"]
-
-        if reply_text:
-            sent_message = await message.reply(reply_text)  # Send the response to the user
-        else:
-            await message.reply("Sorry, I couldn't find an answer. Please try again.")
-
-    except requests.exceptions.RequestException as e:
-        await message.reply(f"Error: An error occurred while calling the MukeshAPI. {e}")
-
-    # Delete the "giving results" message
+        genai.configure(api_key="AIzaSyBM0m9lnb1GlbnWcGWDe0otQ-aVnpIF974")
+        model = genai.GenerativeModel("gemini-1.5-pro")
+        response = model.generate_content(query)
+        reply_text = response.candidates[0].content.parts[0].text
+    except Exception as e:
+        reply_text = f"Error: An error occurred while calling the Gemini API. {e}"
+    
     await result_msg.delete()
-
-@app.on_message(filters.reply)
-async def handle_reply(client, reply_message):
-    global chatbot_enabled  # Use the global chatbot_enabled variable
-    global sent_message  # Use the global sent_message variable
-
-    # Check if the chatbot is enabled and the reply is to the bot's previous message
-    if not chatbot_enabled:
-        return  # Chatbot is disabled, so no response
-
-    if reply_message.reply_to_message and reply_message.reply_to_message.text == sent_message.text:
-        follow_up_query = reply_message.text
-        try:
-            # Use MukeshAPI's gemini method to generate a follow-up response
-            response = api.gemini(follow_up_query)
-            reply_text = response["results"]
-
-            if reply_text:
-                await reply_message.reply(reply_text)  # Send the follow-up response
-            else:
-                await reply_message.reply("Sorry, I couldn't find an answer. Please try again.")
-
-        except requests.exceptions.RequestException as e:
-            await reply_message.reply(f"Error: An error occurred while calling the MukeshAPI. {e}")
+    await message.reply(reply_text)
 
 help = """
-➦ *Write flash with any sentence it will work as chatbot.*
+➦ *Write 'flash' with any sentence, and it will work as a chatbot.*
 
 *Example*: flash are you a bot?
 """
-
 mod_name = "CHATBOT"
