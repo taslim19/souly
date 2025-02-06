@@ -18,8 +18,8 @@ def get_inline_buttons():
         [InlineKeyboardButton("Disable Chatbot", callback_data="disable_chatbot")]
     ])
 
-@app.on_message(filters.command("start"))
-async def start(client, message):
+@app.on_message(filters.command("chatbot"))
+async def chatbot(client, message):
     # Send the inline button to enable the chatbot
     await message.reply("Click a button to enable or disable the chatbot:", reply_markup=get_inline_buttons())
 
@@ -37,10 +37,14 @@ async def disable_chatbot(client, callback_query):
     await callback_query.message.edit("Chatbot is now disabled. You cannot use it until enabled.", reply_markup=get_inline_buttons())
     await callback_query.answer()
 
+sent_message = None  # Declare a global variable to store the sent message for tracking
+
 @app.on_message(filters.text)
 async def palm_chatbot(client, message):
+    global sent_message  # Use the global sent_message variable
     global chatbot_enabled  # Use the global chatbot_enabled variable
 
+    # Check if the chatbot is enabled
     if not chatbot_enabled:
         return  # Chatbot is disabled, so no response
 
@@ -66,7 +70,7 @@ async def palm_chatbot(client, message):
         reply_text = response["results"]
 
         if reply_text:
-            await message.reply(reply_text)  # Send the response to the user
+            sent_message = await message.reply(reply_text)  # Send the response to the user
         else:
             await message.reply("Sorry, I couldn't find an answer. Please try again.")
 
@@ -79,12 +83,13 @@ async def palm_chatbot(client, message):
 @app.on_message(filters.reply)
 async def handle_reply(client, reply_message):
     global chatbot_enabled  # Use the global chatbot_enabled variable
+    global sent_message  # Use the global sent_message variable
 
     # Check if the chatbot is enabled and the reply is to the bot's previous message
     if not chatbot_enabled:
         return  # Chatbot is disabled, so no response
 
-    if reply_message.reply_to_message and reply_message.reply_to_message.text == "🔥":
+    if reply_message.reply_to_message and reply_message.reply_to_message.text == sent_message.text:
         follow_up_query = reply_message.text
         try:
             # Use MukeshAPI's gemini method to generate a follow-up response
