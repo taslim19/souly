@@ -8,16 +8,15 @@ from Mikobot.state import arq
 from Mikobot.utils.can_restrict import can_restrict
 from Mikobot.utils.errors import capture_err
 
-# Function to check NSFW content using Sightengine API
+# Function to check NSFW content using DeepAI API
 def check_nsfw(image_path):
-    url = "https://api.sightengine.com/1.0/nsfw.json"
-    params = {
-        'api_user': '1406815393',  # Replace with your API User
-        'api_secret': 'Ni2VcsEKGXwaxbLBvtks3psaAnvPaanG',  # Replace with your API Secret
+    url = "https://api.deepai.org/api/nsfw-detector"
+    headers = {
+        'api-key': 'd98394f4-12cd-41f0-a8f6-36a6f335fe46',  # Replace with your DeepAI API Key
     }
     with open(image_path, 'rb') as image_file:
-        files = {'media': image_file}  # Corrected the form data key to 'media'
-        response = requests.post(url, data=params, files=files)
+        files = {'image': image_file}  # Use the 'image' key for uploading media
+        response = requests.post(url, headers=headers, files=files)
         return response.json()
 
 # <================================================ FUNCTION =======================================================>
@@ -76,14 +75,14 @@ async def detect_nsfw(_, message):
         return
     file = await _.download_media(file_id)
     
-    # Check NSFW using the alternative method
+    # Check NSFW using DeepAI API
     try:
         nsfw_result = check_nsfw(file)
     except Exception as e:
         return await message.reply_text(f"An error occurred: {str(e)}")
     
     # Extract the NSFW score
-    nsfw_score = nsfw_result.get('nsfw', 0)
+    nsfw_score = nsfw_result.get('output', {}).get('nsfw_score', 0)
     
     # If the user is a "dragon", don't delete the message
     if message.from_user.id in DRAGONS:
@@ -131,14 +130,14 @@ async def nsfw_scan_command(_, message):
         return await m.edit("Something wrong happened.")
     file = await _.download_media(file_id)
 
-    # Check NSFW using the alternative method
+    # Check NSFW using DeepAI API
     try:
         nsfw_result = check_nsfw(file)
     except Exception as e:
         return await m.edit(f"An error occurred: {str(e)}")
     
     # Extract the NSFW score
-    nsfw_score = nsfw_result.get('nsfw', 0)
+    nsfw_score = nsfw_result.get('output', {}).get('nsfw_score', 0)
     
     await m.edit(
         f"""
