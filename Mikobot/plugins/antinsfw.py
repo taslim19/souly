@@ -16,7 +16,7 @@ def check_nsfw(image_path):
         'api_secret': 'Ni2VcsEKGXwaxbLBvtks3psaAnvPaanG',  # Replace with your API Secret
     }
     with open(image_path, 'rb') as image_file:
-        files = {'image': image_file}
+        files = {'media': image_file}  # Corrected the form data key to 'media'
         response = requests.post(url, data=params, files=files)
         return response.json()
 
