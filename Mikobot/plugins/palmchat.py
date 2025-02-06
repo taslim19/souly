@@ -11,25 +11,33 @@ chatbot_enabled = {}
 genai.configure(api_key=os.environ.get("AIzaSyBM0m9lnb1GlbnWcGWDe0otQ-aVnpIF974"))
 model = genai.GenerativeModel("gemini-1.5-pro")
 
-@app.on_message(filters.text & filters.group)  # Listen for ALL text in groups
+@app.on_message(filters.text & filters.group)
 async def chatbot_menu_handler(client: Client, message: Message):
-    if message.text.startswith("/chatbot"):  # Check if the message STARTS with /chatbot
+    if message.text.startswith("/chatbot"):
         try:
-            member = await client.get_chat_member(message.chat.id, message.from_user.id)
-            if member.status in ("creator", "administrator"):  # Check for creator or admin status
-                status = chatbot_enabled.get(message.chat.id, False)
-                keyboard = InlineKeyboardMarkup([
-                    [
-                        InlineKeyboardButton("Turn On", callback_data=f"chatbot_on:{message.chat.id}"),
-                        InlineKeyboardButton("Turn Off", callback_data=f"chatbot_off:{message.chat.id}"),
-                    ]
-                ])
-                await message.reply("Chatbot Control:", reply_markup=keyboard)
-            else:
-                await message.reply("You must be an admin to use this command.")
-        except Exception as e:  # Handle potential errors (e.g., user not in the chat)
-            print(f"Error checking admin status: {e}")
-            await message.reply("An error occurred while checking your status.")
+            chat_id = message.chat.id
+            user_id = message.from_user.id
+
+            try:
+                member = await client.get_chat_member(chat_id, user_id)
+                if member.status in ("creator", "administrator"):
+                    status = chatbot_enabled.get(chat_id, False)
+                    keyboard = InlineKeyboardMarkup([
+                        [
+                            InlineKeyboardButton("Turn On", callback_data=f"chatbot_on:{chat_id}"),
+                            InlineKeyboardButton("Turn Off", callback_data=f"chatbot_off:{chat_id}"),
+                        ]
+                    ])
+                    await message.reply("Chatbot Control:", reply_markup=keyboard)
+                else:
+                    await message.reply("You must be an admin to use this command.")
+
+            except Exception as e:  # Handle potential errors (e.g., user not in the chat, bot has no permission)
+                print(f"Error getting chat member: {e}")
+                await message.reply("Error checking admin status. Make sure the bot is an admin and has necessary permissions.")
+
+        except AttributeError: #message.from_user is None
+            await message.reply("This command can only be used in groups.")
         return  # Stop further processing of this message
 
 
@@ -37,10 +45,10 @@ async def chatbot_menu_handler(client: Client, message: Message):
 async def chatbot_toggle(client: Client, callback_query):
     data = callback_query.data.split(":")
     action = data[1]
-    chat_id = int(data[2])  # Important: Convert chat_id to integer
+    chat_id = int(data[2])
 
     try:
-        member = await client.get_chat_member(chat_id, callback_query.from_user.id) #check admin for callback
+        member = await client.get_chat_member(chat_id, callback_query.from_user.id)
         if member.status in ("creator", "administrator"):
             if action == "on":
                 chatbot_enabled[chat_id] = True
@@ -48,13 +56,12 @@ async def chatbot_toggle(client: Client, callback_query):
                 chatbot_enabled[chat_id] = False
 
             await callback_query.edit_message_text(f"Chatbot is now {'enabled' if chatbot_enabled.get(chat_id) else 'disabled'}")
-            await callback_query.answer()  # Acknowledge the button press
+            await callback_query.answer()
         else:
             await callback_query.answer("You are not an admin.")
-    except Exception as e:
-        print(f"Error checking admin status for callback: {e}")
+    except Exception as e:  # Handle potential errors
+        print(f"Error in callback query: {e}")
         await callback_query.answer("An error occurred.")
-
 
 
 @app.on_message(filters.text & filters.group)  # For the "flash" command
