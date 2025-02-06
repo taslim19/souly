@@ -20,6 +20,12 @@ def get_inline_buttons():
 
 @app.on_message(filters.command("chatbot"))
 async def chatbot(client, message):
+    # Check if the user is an admin in the group
+    chat_member = await client.get_chat_member(message.chat.id, message.from_user.id)
+    if chat_member.status not in ["administrator", "creator"]:
+        await message.reply("Sorry, only group admins can use this command.")
+        return
+
     # Send the inline button to enable the chatbot
     await message.reply("Click a button to enable or disable the chatbot:", reply_markup=get_inline_buttons())
 
