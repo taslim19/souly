@@ -3,6 +3,8 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from Mikobot import app  # Make sure to import your app instance
 import os
 import google.generativeai as genai
+import base64  # For encoding chat_id
+
 
 # Store chatbot status per group (replace with a database in production)
 chatbot_enabled = {}
@@ -15,15 +17,16 @@ model = genai.GenerativeModel("gemini-1.5-pro")
 async def chatbot_menu_handler(client: Client, message: Message):
     if message.text.startswith("/chatbot"):
         chat_id = message.chat.id
-        status = chatbot_enabled.get(chat_id, False)  # Get current status
+        encoded_chat_id = base64.urlsafe_b64encode(str(chat_id).encode()).decode()  # Encode chat_id
+        status = chatbot_enabled.get(chat_id, False)
         keyboard = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("Turn On", callback_data=f"chatbot_on:{chat_id}"),
-                InlineKeyboardButton("Turn Off", callback_data=f"chatbot_off:{chat_id}"),
+                InlineKeyboardButton("Turn On", callback_data=f"chatbot_on:{encoded_chat_id}"),
+                InlineKeyboardButton("Turn Off", callback_data=f"chatbot_off:{encoded_chat_id}"),
             ]
         ])
         await message.reply("Chatbot Control:", reply_markup=keyboard)
-        return  # Stop further processing of this message
+        return
 
 
 @app.on_callback_query(filters.regex("^chatbot_(on|off):"))
@@ -31,7 +34,8 @@ async def chatbot_toggle(client: Client, callback_query):
     try:
         data = callback_query.data.split(":")
         action = data[1]
-        chat_id = int(data[2])  # Convert to int here
+        encoded_chat_id = data[2]
+        chat_id = int(base64.urlsafe_b64decode(encoded_chat_id.encode()).decode()) # Decode chat_id
 
         if action == "on":
             chatbot_enabled[chat_id] = True
@@ -40,12 +44,9 @@ async def chatbot_toggle(client: Client, callback_query):
 
         await callback_query.edit_message_text(f"Chatbot is now {'enabled' if chatbot_enabled.get(chat_id) else 'disabled'}")
         await callback_query.answer()
-    except (IndexError, ValueError) as e:  # Handle potential errors
-        print(f"Error in callback data: {e}")
-        await callback_query.answer("An error occurred. Please try again.")  # More user-friendly message
-    except Exception as e:
-        print(f"Unexpected error in callback: {e}")
-        await callback_query.answer("An unexpected error occurred.")
+    except Exception as e:  # Catch any errors
+        print(f"Error in callback query: {e}")
+        await callback_query.answer("An error occurred. Please try again.")
 
 @app.on_message(filters.text & filters.group)  # For the "flash" command
 async def palm_chatbot(client: Client, message: Message):
