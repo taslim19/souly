@@ -3,9 +3,10 @@ from pyrogram import filters
 import google.generativeai as genai
 from Mikobot import app
 from pyrogram.enums import ChatAction
+import grpc
 
 # 1. Secure API Key Handling (Environment Variable)
-genai.configure(api_key=os.environ.get("AIzaSyBM0m9lnb1GlbnWcGWDe0otQ-aVnpIF974"))  # Set GEMINI_API_KEY in your environment
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))  # Set GEMINI_API_KEY in your environment
 
 @app.on_message(filters.text)
 async def palm_chatbot(client, message):
@@ -26,7 +27,7 @@ async def palm_chatbot(client, message):
         available_models = genai.list_models()
         gemini_model = None
         for model in available_models:
-            if "gemini" in model.name.lower() and model.supported_methods and "generateContent" in model.supported_methods: # Find a Gemini model
+            if "gemini" in model.name.lower() and model.supported_methods and "generateContent" in model.supported_methods:
                 gemini_model = model
                 break
 
@@ -41,7 +42,7 @@ async def palm_chatbot(client, message):
         # 4. Make the API call
         response = model.generate_content(
             contents=[{"role": "user", "parts": [{"text": f"Generate a response to the following query: {query}"}]}]
-            )
+        )
 
         reply_text = ""
         if response.candidates:
@@ -55,10 +56,12 @@ async def palm_chatbot(client, message):
         else:
             await message.reply("Sorry, I couldn't find an answer. Please try again.")
 
-    except genai.APIError as e:  # Catch specific Gemini API errors
-        await message.reply(f"Gemini API Error: {e}")
-    except Exception as e:  # Catch other exceptions
+    except grpc.RpcError as e:  # Catch gRPC errors (most common for API issues)
+        await message.reply(f"Gemini API Error: {e.code()}: {e.details()}")
+        print(f"gRPC Error details: {e}") # Print full error for debugging in your console
+    except Exception as e:  # Catch other exceptions (like network issues)
         await message.reply(f"An unexpected error occurred: {e}")
+        print(f"Unexpected error: {e}") # Print full error for debugging in your console
 
     await result_msg.delete()
 
