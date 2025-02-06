@@ -1,16 +1,14 @@
-# <============================================== IMPORTS =========================================================>
 from os import remove
-
+import requests
 from pyrogram import filters
-
 from Database.mongodb.toggle_mongo import is_nsfw_on, nsfw_off, nsfw_on
 from Mikobot import BOT_USERNAME, DRAGONS, app
-from Mikobot.state import arq
 from Mikobot.utils.can_restrict import can_restrict
 from Mikobot.utils.errors import capture_err
 
-# <=======================================================================================================>
-
+# Sightengine API credentials
+API_USER = "1406815393"
+API_SECRET = "Ni2VcsEKGXwaxbLBvtks3psaAnvPaanG"
 
 # <================================================ FUNCTION =======================================================>
 async def get_file_id_from_message(message):
@@ -45,6 +43,25 @@ async def get_file_id_from_message(message):
         file_id = message.video.thumbs[0].file_id
     return file_id
 
+# Function to scan NSFW content using Sightengine API
+async def scan_nsfw_with_sightengine(file):
+    # Upload file to Sightengine API
+    response = requests.post(
+        "https://api.sightengine.com/1.0/check.json",
+        params={
+            "models": "nudity",
+            "api_user": API_USER,
+            "api_secret": API_SECRET,
+        },
+        files={"image": file},
+    )
+
+    # Check the response
+    if response.status_code == 200:
+        data = response.json()
+        return data
+    else:
+        return None
 
 @app.on_message(
     (
@@ -67,33 +84,40 @@ async def detect_nsfw(_, message):
     if not file_id:
         return
     file = await _.download_media(file_id)
+    
     try:
-        results = await arq.nsfw_scan(file=file)
+        # Scan NSFW using Sightengine
+        results = await scan_nsfw_with_sightengine(file)
     except Exception:
         return
-    if not results.ok:
+    
+    if not results:
         return
-    results = results.result
+    
     remove(file)
-    nsfw = results.is_nsfw
+    
+    # Extract results from Sightengine API
+    nsfw_score = results.get('nudity', {}).get('safe', 0)
+    
     if message.from_user.id in DRAGONS:
         return
-    if not nsfw:
+    
+    if nsfw_score < 0.7:  # 70% confidence for NSFW
         return
+    
     try:
         await message.delete()
     except Exception:
         return
+    
     await message.reply_text(
         f"""
 **🔞 NSFW Image Detected & Deleted Successfully!**
 
 **✪ User:** {message.from_user.mention} [`{message.from_user.id}`]
-**✪ Safe:** `{results.neutral} %`
-**✪ Porn:** `{results.porn} %`
-**✪ Adult:** `{results.sexy} %`
-**✪ Hentai:** `{results.hentai} %`
-**✪ Drawings:** `{results.drawings} %`
+**✪ Safe:** `{results.get('nudity', {}).get('safe', 0)} %`
+**✪ Porn:** `{results.get('nudity', {}).get('porn', 0)} %`
+**✪ Adult:** `{results.get('nudity', {}).get('sexy', 0)} %`
 """
     )
 
@@ -123,22 +147,26 @@ async def nsfw_scan_command(_, message):
     if not file_id:
         return await m.edit("Something wrong happened.")
     file = await _.download_media(file_id)
+    
     try:
-        results = await arq.nsfw_scan(file=file)
+        # Scan NSFW using Sightengine
+        results = await scan_nsfw_with_sightengine(file)
     except Exception:
         return
+    
     remove(file)
-    if not results.ok:
-        return await m.edit(results.result)
-    results = results.result
+    
+    if not results:
+        return await m.edit("Failed to scan the image.")
+    
+    nsfw_score = results.get('nudity', {}).get('safe', 0)
+    
     await m.edit(
         f"""
-**➢ Neutral:** `{results.neutral} %`
-**➢ Porn:** `{results.porn} %`
-**➢ Hentai:** `{results.hentai} %`
-**➢ Sexy:** `{results.sexy} %`
-**➢ Drawings:** `{results.drawings} %`
-**➢ NSFW:** `{results.is_nsfw}`
+**➢ Safe:** `{results.get('nudity', {}).get('safe', 0)} %`
+**➢ Porn:** `{results.get('nudity', {}).get('porn', 0)} %`
+**➢ Adult:** `{results.get('nudity', {}).get('sexy', 0)} %`
+**➢ NSFW:** `{nsfw_score >= 0.7}`
 """
     )
 
