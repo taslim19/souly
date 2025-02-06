@@ -1,5 +1,5 @@
 from pyrogram import filters
-from MukeshAPI import api  # Import MukeshAPI
+import google.generativeai as genai  # Using Gemini API
 
 from Mikobot import app
 from Mikobot.state import state
@@ -23,20 +23,21 @@ async def palm_chatbot(client, message):
     await app.send_chat_action(message.chat.id, ChatAction.TYPING)
 
     try:
-        # Use MukeshAPI's gemini method to generate a response
-        response = api.gemini(query)
-        await app.send_chat_action(message.chat.id, ChatAction.TYPING)
+        # Use Gemini Flash 2.0 (Assuming this works with Google Generative AI API or a similar method)
+        genai.configure(api_key="AIzaSyBM0m9lnb1GlbnWcGWDe0otQ-aVnpIF974")  # Make sure to use your valid API key
+        model = genai.GenerativeModel("gemini-2.0")  # Or the appropriate model for Gemini Flash 2.0
+        response = model.generate_content(f"Generate a response to the following query: {query}")
 
-        # Extract the response text from MukeshAPI
-        reply_text = response["results"]
+        # Extract only the reply text 
+        reply_text = response.candidates[0].content.parts[0].text
 
         if reply_text:
             await message.reply(reply_text)  # Send the response to the user
         else:
             await message.reply("Sorry, I couldn't find an answer. Please try again.")
 
-    except requests.exceptions.RequestException as e:
-        await message.reply(f"Error: An error occurred while calling the MukeshAPI. {e}")
+    except Exception as e:
+        await message.reply(f"Error: An error occurred while calling the Gemini Flash 2.0 API. {e}")
 
     # Delete the "giving results" message
     await result_msg.delete()
