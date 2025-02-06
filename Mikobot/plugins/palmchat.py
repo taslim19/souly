@@ -2,6 +2,7 @@ from pyrogram import filters, Client
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from Mikobot import app
 import google.generativeai as genai
+import base64
 
 # Configure Gemini API Key
 GENAI_API_KEY = "AIzaSyBM0m9lnb1GlbnWcGWDe0otQ-aVnpIF974"
@@ -25,10 +26,14 @@ async def chatbot_handler(client: Client, message: Message):
             return
 
         status = chatbot_enabled.get(chat_id, False)
+        
+        # Encode chat_id to prevent errors with negative numbers
+        encoded_chat_id = base64.urlsafe_b64encode(str(chat_id).encode()).decode()
+
         keyboard = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("Turn On", callback_data=f"chatbot_on:{str(chat_id)}"),
-                InlineKeyboardButton("Turn Off", callback_data=f"chatbot_off:{str(chat_id)}"),
+                InlineKeyboardButton("Turn On", callback_data=f"chatbot_on:{encoded_chat_id}"),
+                InlineKeyboardButton("Turn Off", callback_data=f"chatbot_off:{encoded_chat_id}"),
             ]
         ])
         await message.reply("Chatbot Control:", reply_markup=keyboard)
@@ -61,7 +66,8 @@ async def chatbot_toggle(client: Client, callback_query):
             return
 
         action = data[1]
-        chat_id = int(data[2])  # Ensure this is a valid chat ID
+        encoded_chat_id = data[2]  # encoded chat_id
+        chat_id = int(base64.urlsafe_b64decode(encoded_chat_id.encode()).decode())  # Decode the chat_id
 
         chatbot_enabled[chat_id] = (action == "on")
 
