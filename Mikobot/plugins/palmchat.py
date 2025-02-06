@@ -16,8 +16,12 @@ model = genai.GenerativeModel("gemini-1.5-pro")
 @app.on_message(filters.text & filters.group)
 async def chatbot_menu_handler(client: Client, message: Message):
     if message.text.startswith("/chatbot"):
+        if message.from_user is None:  # Handle messages from channels or deleted users
+            await message.reply("This command can only be used by group members.")
+            return
+
         chat_id = message.chat.id
-        encoded_chat_id = base64.urlsafe_b64encode(str(chat_id).encode()).decode()  # Encode chat_id
+        encoded_chat_id = base64.urlsafe_b64encode(str(chat_id).encode()).decode()
         status = chatbot_enabled.get(chat_id, False)
         keyboard = InlineKeyboardMarkup([
             [
@@ -28,15 +32,14 @@ async def chatbot_menu_handler(client: Client, message: Message):
         await message.reply("Chatbot Control:", reply_markup=keyboard)
         return
 
-
 @app.on_callback_query(filters.regex("^chatbot_(on|off):"))
 async def chatbot_toggle(client: Client, callback_query):
     try:
         data = callback_query.data.split(":")
         action = data[1]
-        encoded_chat_id = data[2] # Get the encoded ID
+        encoded_chat_id = data[2]
 
-        chat_id = int(base64.urlsafe_b64decode(encoded_chat_id.encode()).decode()) # Decode it FIRST
+        chat_id = int(base64.urlsafe_b64decode(encoded_chat_id.encode()).decode())
 
         if action == "on":
             chatbot_enabled[chat_id] = True
@@ -45,10 +48,10 @@ async def chatbot_toggle(client: Client, callback_query):
 
         await callback_query.edit_message_text(f"Chatbot is now {'enabled' if chatbot_enabled.get(chat_id) else 'disabled'}")
         await callback_query.answer()
-    except (IndexError, ValueError) as e: # Handle potential errors
+    except (IndexError, ValueError) as e:
         print(f"Error in callback data: {e}")
         await callback_query.answer("An error occurred. Please try again.")
-    except Exception as e:  # Catch any other errors
+    except Exception as e:
         print(f"Unexpected error in callback: {e}")
         await callback_query.answer("An unexpected error occurred.")
 
