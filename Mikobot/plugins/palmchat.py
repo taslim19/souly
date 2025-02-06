@@ -53,13 +53,28 @@ async def chatbot_handler(client: Client, message: Message):
 @app.on_callback_query(filters.regex("^chatbot_(on|off):"))
 async def chatbot_toggle(client: Client, callback_query):
     try:
-        action, chat_id = callback_query.data.split(":")[1], int(callback_query.data.split(":")[2])
-        chatbot_enabled[chat_id] = (action == "on")
-        await callback_query.edit_message_text(f"Chatbot is now {'enabled' if chatbot_enabled[chat_id] else 'disabled'}.")
+        data = callback_query.data.split(":")
+        if len(data) < 2:
+            await callback_query.answer("Invalid data format.", show_alert=True)
+            return
+
+        action = data[1]
+        chat_id = int(data[2])  # Ensure it's a valid integer
+
+        if action == "on":
+            chatbot_enabled[chat_id] = True
+        elif action == "off":
+            chatbot_enabled[chat_id] = False
+
+        await callback_query.edit_message_text(f"Chatbot is now {'enabled' if chatbot_enabled.get(chat_id) else 'disabled'}.")
         await callback_query.answer()
+
+    except (IndexError, ValueError) as e:
+        print(f"Error in callback data: {e}")
+        await callback_query.answer("An error occurred. Please try again.", show_alert=True)
     except Exception as e:
-        print(f"Error: {e}")
-        await callback_query.answer("An error occurred. Please try again.")
+        print(f"Unexpected error in callback: {e}")
+        await callback_query.answer("An unexpected error occurred.", show_alert=True)
 
 __help__ = """
 ➦ *Use /chatbot to control the chatbot in the group.*
