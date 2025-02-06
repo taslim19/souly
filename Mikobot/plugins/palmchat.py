@@ -1,96 +1,48 @@
-from pyrogram import filters, Client
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram import filters
+from MukeshAPI import api  # Import MukeshAPI
+
 from Mikobot import app
+from Mikobot.state import state
+
+import os
 import google.generativeai as genai
-import base64
 
-# Configure Gemini API Key
-GENAI_API_KEY = "AIzaSyBM0m9lnb1GlbnWcGWDe0otQ-aVnpIF974"
-genai.configure(api_key=GENAI_API_KEY)
-
-# Use the latest Gemini 1.5-Flash model
-model = genai.GenerativeModel("gemini-1.5-flash")
-
-# Store chatbot status per group
-chatbot_enabled = {}
-
-@app.on_message(filters.text & filters.group)
-async def chatbot_handler(client: Client, message: Message):
-    chat_id = message.chat.id
-
-    print(f"Received message from {chat_id}: {message.text}")
-
-    if message.text.startswith("/chatbot"):
-        if not message.from_user:
-            await message.reply("This command can only be used by group members.")
-            return
-
-        status = chatbot_enabled.get(chat_id, False)
-        
-        # Encode chat_id to prevent errors with negative numbers
-        encoded_chat_id = base64.urlsafe_b64encode(str(chat_id).encode()).decode()
-
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("Turn On", callback_data=f"chatbot_on:{encoded_chat_id}"),
-                InlineKeyboardButton("Turn Off", callback_data=f"chatbot_off:{encoded_chat_id}"),
-            ]
-        ])
-        await message.reply("Chatbot Control:", reply_markup=keyboard)
+# Remove the Gemini API key configuration
+@app.on_message(filters.text)
+async def palm_chatbot(client, message):
+    if not message.text.startswith("flash"):
         return
 
-    if chatbot_enabled.get(chat_id) and message.text.startswith("flash"):
-        query = " ".join(message.text.split()[1:])
-        if not query:
-            await message.reply("Please provide a query after 'flash'.")
-            return
+    query = " ".join(message.text.split()[1:])
 
-        result_msg = await message.reply("🔥 Generating response...")
+    if not query:
+        await message.reply("Please provide a query after flash.")
+        return
 
-        try:
-            response = model.generate_content(query)
-            reply_text = response.text if hasattr(response, "text") else "I couldn't generate a response."
-        except Exception as e:
-            reply_text = f"Error: Unable to fetch a response. {e}"
-            print(f"Gemini API Error: {e}")
+    # Send the "giving results" message first
+    result_msg = await message.reply("🔥")
 
-        await result_msg.delete()
-        await message.reply(reply_text)
-
-@app.on_callback_query(filters.regex("^chatbot_(on|off):"))
-async def chatbot_toggle(client: Client, callback_query):
     try:
-        data = callback_query.data.split(":")
-        if len(data) < 3:
-            await callback_query.answer("Invalid data format.", show_alert=True)
-            return
+        # Use MukeshAPI instead of Gemini API to generate a response
+        response = api.query(query)  # MukeshAPI call
 
-        action = data[1]
-        encoded_chat_id = data[2]  # encoded chat_id
-        chat_id = int(base64.urlsafe_b64decode(encoded_chat_id.encode()).decode())  # Decode the chat_id
+        # Extract the reply text from MukeshAPI response
+        reply_text = response["result"]  # Assuming MukeshAPI returns a dictionary with 'result'
 
-        chatbot_enabled[chat_id] = (action == "on")
-
-        await callback_query.edit_message_text(f"Chatbot is now {'enabled' if chatbot_enabled[chat_id] else 'disabled'}.")
-        await callback_query.answer()
-
-    except (IndexError, ValueError) as e:
-        print(f"Error in callback data: {e}")
-        await callback_query.answer("An error occurred. Please try again.", show_alert=True)
     except Exception as e:
-        print(f"Unexpected error in callback: {e}")
-        await callback_query.answer("An unexpected error occurred.", show_alert=True)
+        reply_text = f"Error: An error occurred while calling the MukeshAPI. {e}"
 
-# Debugging function to check if the bot is receiving messages
-@app.on_message(filters.group)
-async def test_messages(client, message):
-    print(f"Received message in group {message.chat.id}: {message.text}")
+    # Delete the "giving results" message
+    await result_msg.delete()
 
-__help__ = """
-➦ *Use /chatbot to control the chatbot in the group.*
-➦ *To use the chatbot, start your message with "flash" followed by your query.*
+    # Send the chatbot response to the user
+    await message.reply(reply_text)
 
-*Example*: flash Are you a bot?
+
+help = """
+➦ *Write Miko with any sentence it will work as chatbot.*
+
+*Example*: Miko are you a bot?
 """
 
-__mod_name__ = "CHATBOT"
+mod_name = "CHATBOT"
