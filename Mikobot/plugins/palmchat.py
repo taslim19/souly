@@ -34,8 +34,9 @@ async def chatbot_toggle(client: Client, callback_query):
     try:
         data = callback_query.data.split(":")
         action = data[1]
-        encoded_chat_id = data[2]
-        chat_id = int(base64.urlsafe_b64decode(encoded_chat_id.encode()).decode()) # Decode chat_id
+        encoded_chat_id = data[2] # Get the encoded ID
+
+        chat_id = int(base64.urlsafe_b64decode(encoded_chat_id.encode()).decode()) # Decode it FIRST
 
         if action == "on":
             chatbot_enabled[chat_id] = True
@@ -44,9 +45,12 @@ async def chatbot_toggle(client: Client, callback_query):
 
         await callback_query.edit_message_text(f"Chatbot is now {'enabled' if chatbot_enabled.get(chat_id) else 'disabled'}")
         await callback_query.answer()
-    except Exception as e:  # Catch any errors
-        print(f"Error in callback query: {e}")
+    except (IndexError, ValueError) as e: # Handle potential errors
+        print(f"Error in callback data: {e}")
         await callback_query.answer("An error occurred. Please try again.")
+    except Exception as e:  # Catch any other errors
+        print(f"Unexpected error in callback: {e}")
+        await callback_query.answer("An unexpected error occurred.")
 
 @app.on_message(filters.text & filters.group)  # For the "flash" command
 async def palm_chatbot(client: Client, message: Message):
