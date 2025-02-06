@@ -6,12 +6,43 @@ from Mikobot.state import state
 
 import requests
 from pyrogram.enums import ChatAction
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-sent_message = None  # Declare a global variable to store the sent message for tracking
+# Track chatbot state (enabled/disabled)
+chatbot_enabled = False
+
+# Function to create the inline buttons
+def get_inline_buttons():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("Enable Chatbot", callback_data="enable_chatbot")],
+        [InlineKeyboardButton("Disable Chatbot", callback_data="disable_chatbot")]
+    ])
+
+@app.on_message(filters.command("start"))
+async def start(client, message):
+    # Send the inline button to enable the chatbot
+    await message.reply("Click a button to enable or disable the chatbot:", reply_markup=get_inline_buttons())
+
+@app.on_callback_query(filters.regex("enable_chatbot"))
+async def enable_chatbot(client, callback_query):
+    global chatbot_enabled
+    chatbot_enabled = True
+    await callback_query.message.edit("Chatbot is now enabled! You can start using it.", reply_markup=get_inline_buttons())
+    await callback_query.answer()
+
+@app.on_callback_query(filters.regex("disable_chatbot"))
+async def disable_chatbot(client, callback_query):
+    global chatbot_enabled
+    chatbot_enabled = False
+    await callback_query.message.edit("Chatbot is now disabled. You cannot use it until enabled.", reply_markup=get_inline_buttons())
+    await callback_query.answer()
 
 @app.on_message(filters.text)
 async def palm_chatbot(client, message):
-    global sent_message  # Use the global sent_message variable
+    global chatbot_enabled  # Use the global chatbot_enabled variable
+
+    if not chatbot_enabled:
+        return  # Chatbot is disabled, so no response
 
     if not message.text.startswith("flash"):
         return
@@ -35,7 +66,7 @@ async def palm_chatbot(client, message):
         reply_text = response["results"]
 
         if reply_text:
-            sent_message = await message.reply(reply_text)  # Send the response to the user
+            await message.reply(reply_text)  # Send the response to the user
         else:
             await message.reply("Sorry, I couldn't find an answer. Please try again.")
 
@@ -47,9 +78,13 @@ async def palm_chatbot(client, message):
 
 @app.on_message(filters.reply)
 async def handle_reply(client, reply_message):
-    # Check if the reply is to the bot's previous message
-    global sent_message  # Use the global sent_message variable
-    if reply_message.reply_to_message and reply_message.reply_to_message.text == sent_message.text:
+    global chatbot_enabled  # Use the global chatbot_enabled variable
+
+    # Check if the chatbot is enabled and the reply is to the bot's previous message
+    if not chatbot_enabled:
+        return  # Chatbot is disabled, so no response
+
+    if reply_message.reply_to_message and reply_message.reply_to_message.text == "🔥":
         follow_up_query = reply_message.text
         try:
             # Use MukeshAPI's gemini method to generate a follow-up response
