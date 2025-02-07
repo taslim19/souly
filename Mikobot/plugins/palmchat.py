@@ -52,8 +52,8 @@ async def palm_chatbot(client, message):
     result_msg = await message.reply("🔥")
 
     try:
-        genai.configure(api_key="AIzaSyBM0m9lnb1GlbnWcGWDe0otQ-aVnpIF974")
-        model = genai.GenerativeModel("gemini-1.5-pro")
+        genai.configure(api_key="AIzaSyDheFvgahw7uod8uiSAIhzt7pCutVpbtIw")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(query)
         reply_text = response.candidates[0].content.parts[0].text
     except Exception as e:
